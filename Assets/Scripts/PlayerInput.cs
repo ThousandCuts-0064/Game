@@ -12,16 +12,15 @@ public class PlayerInput : InputMethod
 
     public override void Detect()
     {
-        X += PressedOrReleased(Left) - PressedOrReleased(Right);
-        Y += PressedOrReleased(Up) - PressedOrReleased(Down);
-        Z += PressedOrReleased(Forth) - PressedOrReleased(Back);
+        X = PressedOrReleased(Left) - PressedOrReleased(Right);
+        Y = PressedOrReleased(Up) - PressedOrReleased(Down);
+        Z = PressedOrReleased(Forth) - PressedOrReleased(Back);
 
-        static int PressedOrReleased(KeyCode key)
-        {
-            int result = 0;
-            if (Input.GetKeyDown(key)) result++;
-            if (Input.GetKeyUp(key)) result--;
-            return result;
-        }
+        static int PressedOrReleased(KeyCode key) =>
+            Input.GetKeyDown(key)
+            ? 1
+            : Input.GetKeyUp(key)
+            ? -1
+            : 0;
     }
 }
