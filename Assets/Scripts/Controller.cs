@@ -4,7 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class Controller
+public abstract class Controller
 {
-    //public InputMethod
+    public IDigitalDevice Digital { get; set; }
+    public IAnalogDevice Analog { get; set; }
+
+    public abstract void FixedUpdate();
 }
