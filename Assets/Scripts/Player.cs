@@ -6,121 +6,33 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     private Rigidbody _rigidbody;
-    private BodyBehaviours _body;
+    private Body _body;
     private Camera _camera;
     private PlayerDigitalDevice _digitalInput;
     private PlayerAnalogDevice _analogInput;
     private Controller _controller;
-    private Stats _stats;
 
     private void Awake()
     {
+        Cursor.lockState = CursorLockMode.Locked;
         _rigidbody = GetComponent<Rigidbody>();
         _camera = GetComponentInChildren<Camera>();
         _body = new(this);
         _analogInput = new();
         _digitalInput = new();
-        _stats = new(
-            new Foot[]
-            {
-                new()
-                {
-                    Speed = 2,
-                    JumpHeight = 3,
-                },
-                new()
-                {
-                    Speed = 2,
-                    JumpHeight = 3,
-                },
-            });
         _controller = new(this)
         {
             Analog = _analogInput,
             Digital = _digitalInput
         };
-
-        Cursor.lockState = CursorLockMode.Locked;
-
     }
 
     private void Start()
     {
-        Physics.IgnoreCollision(_body.Torso.Collider, _body.Feet[0].Collider);
-        
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        for (int i = 0; i < collision.contactCount; i++)
-        {
-            var contact = collision.GetContact(i);
-            for (int y = 0; y < _body.Feet.Count; y++)
-            {
-                if (CheckFoot(contact, y)) break;
-            }
-        }
-
-        bool CheckFoot(ContactPoint contact, int index)
-        {
-            Collider footCol = _body.Feet[index].Collider;
-            if (contact.thisCollider != footCol) return false;
-
-            if (contact.point.y < footCol.transform.position.y)
-                _stats.Feet[index].GroundCollisions[collision] = Time.time;
-            return true;
-        }
-    }
-
-    private void OnCollisionStay(Collision collision)
-    {
-        for (int i = 0; i < collision.contactCount; i++)
-        {
-            var contact = collision.GetContact(i);
-            for (int y = 0; y < _body.Feet.Count; y++)
-            {
-                if (CheckFoot(contact, y)) break;
-            }
-        }
-
-        bool CheckFoot(ContactPoint contact, int index)
-        {
-            Collider footCol = _body.Feet[index].Collider;
-            if (contact.thisCollider != footCol) return false;
-
-            if (contact.point.y < footCol.transform.position.y)
-                _stats.Feet[index].GroundCollisions[collision] = Time.time;
-            else
-                _stats.Feet[index].GroundCollisions.Remove(collision);
-            return true;
-        }
-    }
-
-    private void OnCollisionExit(Collision collision)
-    {
-        for (int i = 0; i < _body.Feet.Count; i++)
-        {
-            if (CheckFoot(i)) break;
-        }
-
-        bool CheckFoot(int index)
-        {
-            var collisions = _stats.Feet[index].GroundCollisions;
-            Collision[] keys = new Collision[collisions.Count];
-            float[] values = new float[collisions.Count];
-            collisions.Keys.CopyTo(keys, 0);
-            collisions.Values.CopyTo(values, 0);
-
-            for (int i = 0; i < keys.Length; i++)
-            {
-                if (Time.time - values[i] > Time.fixedDeltaTime)
-                {
-                    collisions.Remove(keys[i]);
-                    return true;
-                }
-            }
-            return false;
-        }
+        var colliders = GetComponentsInChildren<Collider>();
+        foreach (var col1 in colliders)
+            foreach (var col2 in colliders)
+                Physics.IgnoreCollision(col1, col2, true);
     }
 
     private void Update()
@@ -134,14 +46,13 @@ public class Player : MonoBehaviour
         _controller.FixedUpdate();
     }
 
-    private class Controller : global::Controller
+    public class Controller : global::Controller
     {
         private readonly Player _player;
         private Vector3 _rotation;
         private Transform Transform => _player.transform;
         private Rigidbody Rigidbody => _player._rigidbody;
-        private BodyBehaviours Body => _player._body;
-        private Stats Stats => _player._stats;
+        private Body Body => _player._body;
 
         public Controller(Player player) => _player = player;
 
@@ -149,22 +60,25 @@ public class Player : MonoBehaviour
         {
             //Mouse
             Vector3 addRot = new(-Analog.Z.Process(), Analog.X.Process(), Analog.Y.Process());
-            Transform.Rotate(0, addRot.y, 0);
+            Rigidbody.MoveRotation(Quaternion.Euler(0, Rigidbody.rotation.eulerAngles.y + addRot.y, 0));
             _rotation.Set(_rotation.x + addRot.x, 0, _rotation.z + addRot.z);
             _rotation.x = Math.Clamp(_rotation.x, -90, 90);
             _rotation.z = Math.Clamp(_rotation.z, -90, 90);
-            Body.Neck.localEulerAngles = _rotation;
+            Neck neck = Body.Neck;
+            neck.Rigidbody.MoveRotation(Quaternion.Euler(_rotation));
+            //neck.Rigidbody.MovePosition(neck.transform.TransformPoint(neck.transform.localPosition));
+            //neck.Rigidbody.MovePosition(neck.transform.TransformPoint(new(0,1,0)));
 
             //Keyboard
             Vector3 moveDir = new();
             moveDir += Transform.forward * CalcDir(Digital.Forth, Digital.Back);
             moveDir += Transform.right * CalcDir(Digital.Right, Digital.Left);
             moveDir.Normalize();
-            moveDir *= (Stats.Feet[0].Speed + Stats.Feet[1].Speed) / 2;
+            moveDir *= (Body.Feet[0].Stats.Speed + Body.Feet[1].Stats.Speed) / 2;
             Rigidbody.MovePosition(Rigidbody.position + moveDir * Time.fixedDeltaTime);
 
-            for (int i = 0; i < Stats.Feet.Count; i++)
-                TryLegJump(Rigidbody, Digital.Up, Stats.Feet[i]);
+            for (int i = 0; i < Body.Feet.Count; i++)
+                TryLegJump(Rigidbody, Digital.Up, Body.Feet[i].Stats);
 
             //Local funcs
             static float CalcDir(IWrappedDigitalInput positive, IWrappedDigitalInput negative) =>
@@ -177,12 +91,12 @@ public class Player : MonoBehaviour
                     _ => 0
                 };
 
-            static void TryLegJump(Rigidbody rigidbody, IWrappedDigitalInput input, Foot foot)
+            static void TryLegJump(Rigidbody rigidbody, IWrappedDigitalInput input, FootStats foot)
             {
                 if (foot.IsOnGround && input.IsPressed)
                 {
                     rigidbody.AddForce(Vector3.up * foot.JumpHeight, ForceMode.Impulse);
-                    foot.GroundCollisions.Clear();
+                    foot.GroundColliders.Clear();
                 }
             }
         }

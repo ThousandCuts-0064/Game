@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 
 [Serializable]
-public class Stats
+public class HeadStats : Stats
 {
-    [field: SerializeField] public float Health { get; private set; }
+    [field: SerializeField] public float Vission { get; private set; }
 }
