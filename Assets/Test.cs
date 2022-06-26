@@ -4,16 +4,8 @@ using UnityEngine;
 
 public class Test : MonoBehaviour
 {
-    private Vector3 _rotation;
-
-    private void Awake()
+    private void Start()
     {
-        _rotation = transform.rotation.eulerAngles;
-    }
-
-    private void FixedUpdate()
-    {
-        _rotation.x += 1;
-        GetComponent<Rigidbody>().MoveRotation(Quaternion.Euler(_rotation));
+        GetComponent<Rigidbody>().AddForce(Vector3.up * 5, ForceMode.VelocityChange);
     }
 }

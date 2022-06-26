@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public interface IHaveStats<out T> where T : Stats
+public class HandStats : Stats
 {
-    public T Stats { get; }
+
 }

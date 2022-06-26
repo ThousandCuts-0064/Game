@@ -4,9 +4,8 @@ using UnityEngine;
 
 public class Test1 : MonoBehaviour
 {
-    private void OnCollisionStay(Collision collision)
+    private void Start()
     {
-        var rb = transform.root.GetComponent<Rigidbody>();
-        rb.AddForceAtPosition(-rb.velocity, transform.position, ForceMode.Impulse);
+        GetComponent<Rigidbody>().AddForce(5 * Mathf.Sqrt(2) * Vector3.up, ForceMode.VelocityChange);
     }
 }

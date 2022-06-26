@@ -8,38 +8,34 @@ public class Foot : BodyPart<FootStats>
 {
     [field: SerializeField] public int Index { get; private set; }
 
-    protected override void OnCollisionEnter(Collision collision)
+    protected override void OnTriggerEnter(Collider other)
     {
-        for (int i = 0; i < collision.contactCount; i++)
-            if (IsUnder(collision, i))
-                Stats.GroundColliders.Add(collision.collider);
+        if (IsUnder(other))
+            Stats.GroundColliders.Add(other);
 
-        base.OnCollisionEnter(collision);
+        base.OnTriggerEnter(other);
     }
 
-    protected override void OnCollisionStay(Collision collision)
+    protected override void OnTriggerStay(Collider other)
     {
-        for (int i = 0; i < collision.contactCount; i++)
-            if (IsUnder(collision, i))
-                Stats.GroundColliders.Add(collision.collider);
-            else
-                Stats.GroundColliders.Remove(collision.collider);
+        if (IsUnder(other))
+            Stats.GroundColliders.Add(other);
+        else
+            Stats.GroundColliders.Remove(other);
 
-        base.OnCollisionStay(collision);
+        base.OnTriggerStay(other);
     }
 
-    protected override void OnCollisionExit(Collision collision)
+    protected override void OnTriggerExit(Collider other)
     {
-        for (int i = 0; i < collision.contactCount; i++)
-            Stats.GroundColliders.Remove(collision.collider);
+        Stats.GroundColliders.Remove(other);
 
-        base.OnCollisionExit(collision);
+        base.OnTriggerExit(other);
     }
 
-    private bool IsUnder(Collision collision, int index) => collision.GetContact(index).point.y < transform.position.y;
+    private bool IsUnder(Collider other) => Collider.ClosestPoint(other.transform.position).y < transform.position.y;
 
 #if UNITY_EDITOR
-
     [CustomEditor(typeof(Foot))]
     public class Editor : UnityEditor.Editor
     {
@@ -47,9 +43,14 @@ public class Foot : BodyPart<FootStats>
         {
             base.OnInspectorGUI();
             Foot foot = (Foot)target;
-            
+
             EditorGUILayout.Toggle(nameof(foot.Stats.IsOnGround), foot.Stats.IsOnGround);
+            EditorGUILayout.Toggle(nameof(foot.Stats.CanJump), foot.Stats.CanJump);
+
+            Repaint();
         }
+
+        public override bool RequiresConstantRepaint() => true;
     }
 #endif
 }

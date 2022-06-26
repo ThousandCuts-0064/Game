@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using UnityEditor;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -64,10 +66,7 @@ public class Player : MonoBehaviour
             _rotation.Set(_rotation.x + addRot.x, 0, _rotation.z + addRot.z);
             _rotation.x = Math.Clamp(_rotation.x, -90, 90);
             _rotation.z = Math.Clamp(_rotation.z, -90, 90);
-            Neck neck = Body.Neck;
-            neck.Rigidbody.MoveRotation(Quaternion.Euler(_rotation));
-            //neck.Rigidbody.MovePosition(neck.transform.TransformPoint(neck.transform.localPosition));
-            //neck.Rigidbody.MovePosition(neck.transform.TransformPoint(new(0,1,0)));
+            Body.Neck.transform.localRotation = Quaternion.Euler(_rotation);
 
             //Keyboard
             Vector3 moveDir = new();
@@ -93,12 +92,133 @@ public class Player : MonoBehaviour
 
             static void TryLegJump(Rigidbody rigidbody, IWrappedDigitalInput input, FootStats foot)
             {
-                if (foot.IsOnGround && input.IsPressed)
+                if (input.IsPressed && foot.TryJump())
                 {
                     rigidbody.AddForce(Vector3.up * foot.JumpHeight, ForceMode.Impulse);
-                    foot.GroundColliders.Clear();
                 }
             }
         }
     }
+
+#if UNITY_EDITOR
+    [CustomEditor(typeof(Player))]
+    public class Editor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+            if (!Application.isPlaying) return;
+
+            Player player = (Player)target;
+
+            DisplayTable(player._body.Feet);
+
+            //Display(player._body.Feet, foot => foot.Stats,
+            //    (nameof(FootStats.Health), stats => EditorGUILayout.FloatField(stats.Health)),
+            //    (nameof(FootStats.IsOnGround), stats => EditorGUILayout.Toggle(stats.IsOnGround)),
+            //    (nameof(FootStats.CanJump), stats => EditorGUILayout.Toggle(stats.CanJump)));
+
+            Repaint();
+
+            static void Display<TSource, TResult>(IEnumerable<TSource> arr, Func<TSource, TResult> selector, params (string name, Action<TResult> action)[] rows)
+            {
+                foreach (var row in rows)
+                {
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField(row.name, GUILayout.MinWidth(0));
+                    foreach (var item in arr) row.action(selector(item));
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+
+            static void DisplayObject<T>(T obj)
+            {
+                foreach (var field in FindAllFields(typeof(T)))
+                {
+                    if (field.FieldType.IsClass)
+                    {
+                        EditorGUILayout.BeginFoldoutHeaderGroup(true, BackingName(field.Name));
+                        DisplayObject(field.FieldType);
+                        EditorGUILayout.EndFoldoutHeaderGroup();
+                        continue;
+                    }
+
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField(BackingName(field.Name), GUILayout.MinWidth(0));
+                    var value = field.GetValue(obj);
+                    switch (value)
+                    {
+                        case float f:
+                            EditorGUILayout.FloatField(f);
+                            break;
+
+                        case bool b:
+                            EditorGUILayout.Toggle(b);
+                            break;
+
+                        default:
+                            EditorGUILayout.LabelField(value.ToString(), GUILayout.MinWidth(0));
+                            break;
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+
+            static void DisplayTable<T>(IEnumerable<T> objects)
+            {
+                foreach (var field in FindAllFields(typeof(T)))
+                {
+                    if (field.FieldType.IsClass)
+                    {
+                        EditorGUILayout.BeginFoldoutHeaderGroup(true, BackingName(field.Name));
+                        DisplayObject(field.FieldType);
+                        EditorGUILayout.EndFoldoutHeaderGroup();
+                        continue;
+                    }
+
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField(BackingName(field.Name), GUILayout.MinWidth(0));
+                    foreach (var obj in objects)
+                    {
+                        var value = field.GetValue(obj);
+                        switch (value)
+                        {
+                            case float f:
+                                EditorGUILayout.FloatField(f);
+                                break;
+
+                            case bool b:
+                                EditorGUILayout.Toggle(b);
+                                break;
+
+                            default:
+                                EditorGUILayout.LabelField(value.ToString(), GUILayout.MinWidth(0));
+                                break;
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
+                }
+            }
+
+            static string BackingName(string str) => str[0] == '<' ? str[1..str.IndexOf('>')] : str;
+
+            static IEnumerable<FieldInfo> FindAllFields(Type type)
+            {
+                string @namespace = type.Namespace;
+                var fieldInfos = Enumerable.Empty<FieldInfo>();
+
+                var currType = type;
+                while (currType.Namespace == @namespace)
+                {
+                    fieldInfos = fieldInfos.Concat(currType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Where(field => field.IsDefined(typeof(SerializeField))));
+                    currType = currType.BaseType;
+                }
+
+                return fieldInfos;
+            }
+        }
+
+        public override bool RequiresConstantRepaint() => true;
+    }
+#endif
 }
