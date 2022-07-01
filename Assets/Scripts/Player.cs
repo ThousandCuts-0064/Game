@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -104,6 +105,14 @@ public class Player : MonoBehaviour
     [CustomEditor(typeof(Player))]
     public class Editor : UnityEditor.Editor
     {
+        private static bool[] _foldouts = new bool[10];
+        private static int _index;
+
+        private void OnEnable()
+        {
+
+        }
+
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
@@ -111,110 +120,120 @@ public class Player : MonoBehaviour
 
             Player player = (Player)target;
 
-            DisplayTable(player._body.Feet);
-
-            //Display(player._body.Feet, foot => foot.Stats,
-            //    (nameof(FootStats.Health), stats => EditorGUILayout.FloatField(stats.Health)),
-            //    (nameof(FootStats.IsOnGround), stats => EditorGUILayout.Toggle(stats.IsOnGround)),
-            //    (nameof(FootStats.CanJump), stats => EditorGUILayout.Toggle(stats.CanJump)));
+            _index = 0;
+            DisplayObject(player._body);
 
             Repaint();
 
-            static void Display<TSource, TResult>(IEnumerable<TSource> arr, Func<TSource, TResult> selector, params (string name, Action<TResult> action)[] rows)
+            static void DisplayObject(object obj)
             {
-                foreach (var row in rows)
+                foreach (var member in FindAllSerializableMembers(obj.GetType()))
                 {
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(row.name, GUILayout.MinWidth(0));
-                    foreach (var item in arr) row.action(selector(item));
-                    EditorGUILayout.EndHorizontal();
-                }
-            }
-
-            static void DisplayObject<T>(T obj)
-            {
-                foreach (var field in FindAllFields(typeof(T)))
-                {
-                    if (field.FieldType.IsClass)
+                    if (GetReturnType(member).IsClass)
                     {
-                        EditorGUILayout.BeginFoldoutHeaderGroup(true, BackingName(field.Name));
-                        DisplayObject(field.FieldType);
-                        EditorGUILayout.EndFoldoutHeaderGroup();
+                        if (!(_foldouts[_index] = EditorGUILayout.Foldout(_foldouts[_index++], BackingName(member.Name))))
+                            continue;
+                        if (GetValue(member, obj) is IEnumerable<object> returnedValue)
+                            DisplayTable(returnedValue);
+                        else
+                            DisplayObject(GetValue(member, obj));
                         continue;
                     }
 
                     EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(BackingName(field.Name), GUILayout.MinWidth(0));
-                    var value = field.GetValue(obj);
-                    switch (value)
-                    {
-                        case float f:
-                            EditorGUILayout.FloatField(f);
-                            break;
-
-                        case bool b:
-                            EditorGUILayout.Toggle(b);
-                            break;
-
-                        default:
-                            EditorGUILayout.LabelField(value.ToString(), GUILayout.MinWidth(0));
-                            break;
-                    }
+                    EditorGUILayout.LabelField(BackingName(member.Name), GUILayout.MinWidth(0));
+                    DisplayValue(member, obj);
                     EditorGUILayout.EndHorizontal();
                 }
             }
 
-            static void DisplayTable<T>(IEnumerable<T> objects)
+            static void DisplayTable(IEnumerable<object> objects)
             {
-                foreach (var field in FindAllFields(typeof(T)))
+                foreach (var member in FindAllSerializableMembers(objects.First().GetType()))
                 {
-                    if (field.FieldType.IsClass)
+                    if (!GetReturnType(member).IsClass)
                     {
-                        EditorGUILayout.BeginFoldoutHeaderGroup(true, BackingName(field.Name));
-                        DisplayObject(field.FieldType);
-                        EditorGUILayout.EndFoldoutHeaderGroup();
+                        DisplayRow(member, objects);
                         continue;
                     }
 
+                    if (!(_foldouts[_index] = EditorGUILayout.Foldout(_foldouts[_index++], BackingName(member.Name))))
+                        continue;
+
+                    var classes = objects.Select(obj => GetValue(member, obj)).ToList();
+                    var innerMembers = FindAllSerializableMembers(classes.First().GetType());
+                    foreach (var innerMember in innerMembers)
+                        DisplayRow(innerMember, classes);
+                }
+
+                static void DisplayRow(MemberInfo member, IEnumerable<object> objects)
+                {
                     EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(BackingName(field.Name), GUILayout.MinWidth(0));
+                    EditorGUILayout.LabelField(BackingName(member.Name), GUILayout.MinWidth(0));
                     foreach (var obj in objects)
-                    {
-                        var value = field.GetValue(obj);
-                        switch (value)
-                        {
-                            case float f:
-                                EditorGUILayout.FloatField(f);
-                                break;
-
-                            case bool b:
-                                EditorGUILayout.Toggle(b);
-                                break;
-
-                            default:
-                                EditorGUILayout.LabelField(value.ToString(), GUILayout.MinWidth(0));
-                                break;
-                        }
-                    }
+                        DisplayValue(member, obj);
                     EditorGUILayout.EndHorizontal();
                 }
             }
 
             static string BackingName(string str) => str[0] == '<' ? str[1..str.IndexOf('>')] : str;
 
-            static IEnumerable<FieldInfo> FindAllFields(Type type)
+            static object DisplayValue(MemberInfo member, object obj) =>
+                GetValue(member, obj) switch
+                {
+                    float f => EditorGUILayout.FloatField(f, GUILayout.MinWidth(0)),
+                    bool b => EditorGUILayout.Toggle(b, GUILayout.MinWidth(0)),
+                    object o => new Func<object>(() =>
+                    {
+                        EditorGUILayout.LabelField(o.ToString(), GUILayout.MinWidth(0));
+                        return null;
+                    })()
+                };
+
+            static object GetValue(MemberInfo member, object obj) =>
+                member switch
+                {
+                    FieldInfo field => field.GetValue(obj),
+                    PropertyInfo property => property.GetValue(obj),
+                    MethodInfo method => method.Invoke(obj, null),
+                    _ => throw new NotSupportedException($"{nameof(member)} is not field, property or method")
+                };
+
+            static Type GetReturnType(MemberInfo member) =>
+                member switch
+                {
+                    FieldInfo field => field.FieldType,
+                    PropertyInfo property => property.PropertyType,
+                    MethodInfo method => method.ReturnType,
+                    _ => throw new NotSupportedException($"{nameof(member)} is not field, property or method")
+                };
+
+            static IEnumerable<MemberInfo> FindAllSerializableMembers(Type type)
             {
                 string @namespace = type.Namespace;
-                var fieldInfos = Enumerable.Empty<FieldInfo>();
+                BindingFlags flags =
+                    BindingFlags.Instance |
+                    BindingFlags.Public |
+                    BindingFlags.NonPublic |
+                    BindingFlags.DeclaredOnly;
 
                 var currType = type;
+                var fieldInfos = Enumerable.Empty<FieldInfo>();
+                var propertyInfos = Enumerable.Empty<PropertyInfo>();
                 while (currType.Namespace == @namespace)
                 {
-                    fieldInfos = fieldInfos.Concat(currType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Where(field => field.IsDefined(typeof(SerializeField))));
+                    fieldInfos = currType.GetFields(flags)
+                        .Where(field => field.IsDefined(typeof(SerializeField)))
+                        .Concat(fieldInfos);
+
+                    propertyInfos = currType.GetProperties(flags)
+                        .Where(field => field.IsDefined(typeof(SerializeResultAttribute)))
+                        .Concat(propertyInfos);
+
                     currType = currType.BaseType;
                 }
 
-                return fieldInfos;
+                return Enumerable.Empty<MemberInfo>().Concat(fieldInfos).Concat(propertyInfos);
             }
         }
 

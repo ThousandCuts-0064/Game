@@ -10,6 +10,7 @@ public abstract class BodyPart<T> : MonoBehaviour, IHaveStats<T> where T : Stats
 {
     public Collider Collider { get; private set; }
     public Collider Trigger { get; private set; }
+    [field: SerializeField] public int Index { get; private set; }
     [field: SerializeField] public T Stats { get; private set; }
 
     public event Action<Collider> TriggerEnter;

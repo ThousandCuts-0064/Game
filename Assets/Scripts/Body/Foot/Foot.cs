@@ -6,8 +6,6 @@ using UnityEngine;
 [Serializable]
 public class Foot : BodyPart<FootStats>
 {
-    [field: SerializeField] public int Index { get; private set; }
-
     protected override void OnTriggerEnter(Collider other)
     {
         if (IsUnder(other))

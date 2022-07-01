@@ -8,16 +8,18 @@ using UnityEngine;
 
 public class Body
 {
-    public Torso Torso { get; }
-    public Neck Neck { get; }
-    public Head Head { get; }
-    public ReadOnlyCollection<Foot> Feet { get; }
+    [SerializeResult] public Head Head { get; }
+    [SerializeResult] public Neck Neck { get; }
+    [SerializeResult] public Torso Torso { get; }
+    [SerializeResult] public ReadOnlyCollection<Hand> Hands { get; }
+    [SerializeResult] public ReadOnlyCollection<Foot> Feet { get; }
 
     public Body(MonoBehaviour owner)
     {
         Torso = owner.GetComponentInChildren<Torso>();
         Head = owner.GetComponentInChildren<Head>();
         Neck = owner.GetComponentInChildren<Neck>();
+        Hands = Array.AsReadOnly(owner.GetComponentsInChildren<Hand>().OrderBy(f => f.Index).ToArray());
         Feet = Array.AsReadOnly(owner.GetComponentsInChildren<Foot>().OrderBy(f => f.Index).ToArray());
     }
 }

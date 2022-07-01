@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657874, g: 0.49641258, b: 0.5748172, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -364,12 +364,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a2f01e849806bb498e39d94b26659e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  <Index>k__BackingField: 1
   <Stats>k__BackingField:
     <Health>k__BackingField: 0
     <Speed>k__BackingField: 2
     <JumpHeight>k__BackingField: 3
     <JumpCooldown>k__BackingField: 1
-  <Index>k__BackingField: 1
 --- !u!135 &187690847
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -577,12 +577,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a2f01e849806bb498e39d94b26659e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  <Index>k__BackingField: 0
   <Stats>k__BackingField:
     <Health>k__BackingField: 0
     <Speed>k__BackingField: 2
     <JumpHeight>k__BackingField: 3
     <JumpCooldown>k__BackingField: 1
-  <Index>k__BackingField: 0
 --- !u!135 &447536470
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -850,6 +850,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd0ed34676dbe9f41a882e99d6f7df56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  <Index>k__BackingField: 0
   <Stats>k__BackingField:
     <Health>k__BackingField: 0
     <Vission>k__BackingField: 0
@@ -964,6 +965,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c6a207f532221d41b07b07644d5bea2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  <Index>k__BackingField: 1
 --- !u!135 &924599054
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1156,6 +1158,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa6c285d9dafb0d499d22dae68a8a4f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  <Index>k__BackingField: 0
   <Stats>k__BackingField:
     <Health>k__BackingField: 0
 --- !u!1 &1500059300
@@ -1388,6 +1391,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c48351f55fc28947aae06219a6734d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  <Index>k__BackingField: 0
   <Stats>k__BackingField:
     <Health>k__BackingField: 0
 --- !u!1 &1872337755
@@ -1534,6 +1538,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c6a207f532221d41b07b07644d5bea2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  <Index>k__BackingField: 0
 --- !u!135 &2069439133
 SphereCollider:
   m_ObjectHideFlags: 0
