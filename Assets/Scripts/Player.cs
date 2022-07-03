@@ -105,8 +105,7 @@ public class Player : MonoBehaviour
     [CustomEditor(typeof(Player))]
     public class Editor : UnityEditor.Editor
     {
-        private static bool[] _foldouts = new bool[10];
-        private static int _index;
+        private static Dictionary<string, bool> _foldouts = new();
 
         private void OnEnable()
         {
@@ -120,34 +119,37 @@ public class Player : MonoBehaviour
 
             Player player = (Player)target;
 
-            _index = 0;
             DisplayObject(player._body);
 
             Repaint();
 
-            static void DisplayObject(object obj)
+            static void DisplayObject(object obj, string recursiveName = null)
             {
                 foreach (var member in FindAllSerializableMembers(obj.GetType()))
                 {
-                    if (GetReturnType(member).IsClass)
+                    if (!GetReturnType(member).IsClass)
                     {
-                        if (!(_foldouts[_index] = EditorGUILayout.Foldout(_foldouts[_index++], BackingName(member.Name))))
-                            continue;
-                        if (GetValue(member, obj) is IEnumerable<object> returnedValue)
-                            DisplayTable(returnedValue);
-                        else
-                            DisplayObject(GetValue(member, obj));
+                        EditorGUILayout.BeginHorizontal();
+                        EditorGUILayout.LabelField(BackingName(member.Name), GUILayout.MinWidth(0));
+                        DisplayValue(member, obj);
+                        EditorGUILayout.EndHorizontal();
                         continue;
                     }
 
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(BackingName(member.Name), GUILayout.MinWidth(0));
-                    DisplayValue(member, obj);
-                    EditorGUILayout.EndHorizontal();
+                    string fullName = recursiveName + BackingName(member.Name);
+                    if (!_foldouts.ContainsKey(fullName)) _foldouts.Add(fullName, false);
+                    if (_foldouts[fullName] = EditorGUILayout.BeginToggleGroup(fullName, _foldouts[fullName]))
+                    {
+                        if (GetValue(member, obj) is IEnumerable<object> returnedValue)
+                            DisplayTable(returnedValue, fullName);
+                        else
+                            DisplayObject(GetValue(member, obj), fullName);
+                    }
+                    EditorGUILayout.EndToggleGroup();
                 }
             }
 
-            static void DisplayTable(IEnumerable<object> objects)
+            static void DisplayTable(IEnumerable<object> objects, string recursiveName = null)
             {
                 foreach (var member in FindAllSerializableMembers(objects.First().GetType()))
                 {
@@ -157,13 +159,16 @@ public class Player : MonoBehaviour
                         continue;
                     }
 
-                    if (!(_foldouts[_index] = EditorGUILayout.Foldout(_foldouts[_index++], BackingName(member.Name))))
-                        continue;
-
-                    var classes = objects.Select(obj => GetValue(member, obj)).ToList();
-                    var innerMembers = FindAllSerializableMembers(classes.First().GetType());
-                    foreach (var innerMember in innerMembers)
-                        DisplayRow(innerMember, classes);
+                    string fullName = recursiveName + BackingName(member.Name);
+                    if (!_foldouts.ContainsKey(fullName)) _foldouts.Add(fullName, false);
+                    if (_foldouts[fullName] = EditorGUILayout.BeginToggleGroup(fullName, _foldouts[fullName]))
+                    {
+                        var classes = objects.Select(obj => GetValue(member, obj)).ToList();
+                        var innerMembers = FindAllSerializableMembers(classes.First().GetType());
+                        foreach (var innerMember in innerMembers)
+                            DisplayRow(innerMember, classes);
+                    }
+                    EditorGUILayout.EndToggleGroup();
                 }
 
                 static void DisplayRow(MemberInfo member, IEnumerable<object> objects)
