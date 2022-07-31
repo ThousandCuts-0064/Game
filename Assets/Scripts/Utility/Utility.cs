@@ -12,6 +12,23 @@ public static class Utility
         return obj;
     }
 
+    public static ReadOnlySpan<char> SeparateWords(this string str, Span<char> span)
+    {
+        int spaces = 0;
+        int i = 0;
+        while (!char.IsUpper(str[i])) i++;
+        for (; i < str.Length; i++)
+        {
+            if (char.IsUpper(str[i]))
+            {
+                span[i + spaces] = ' ';
+                spaces++;
+            }
+            span[i + spaces] = str[i];
+        }
+        return span[..(str.Length + spaces)];
+    }
+
     public static int CountBits(this int @int)
     {
         int bits = 0;
@@ -32,7 +49,7 @@ public static class Utility
             @int >>= 1;
             i++;
         }
-        return span.Slice(0, i);
+        return span[..i];
     }
 
     public static ReadOnlySpan<int> SeparateCountBits(this int @int, Span<int> span, out int bits)
@@ -47,6 +64,6 @@ public static class Utility
             @int >>= 1;
             i++;
         }
-        return span.Slice(0, i);
+        return span[..i];
     }
 }

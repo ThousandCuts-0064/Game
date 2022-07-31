@@ -55,10 +55,6 @@ public class Block : MonoBehaviour
             _triangles[dir] = new int[dir.CountBits() * SQUARE_TOTAL_LINES];
         }
 
-        //print(Convert.ToString(Const.DIRECTIONS_ALL_INT, 2));
-        //print(Const.DIRECTIONS_ALL_INT.CountBits());
-        //print(_triangles[Const.DIRECTIONS_ALL_INT].Length);
-
         for (int side = 0; side < SIDES; side++)
         {
             var trig = side * SQUARE_TOTAL_LINES;

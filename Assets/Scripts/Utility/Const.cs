@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 public static class Const
 {
+    public const string PREFAB_FOLDER = "Assets/Prefabs/";
+    public const string PREFAB_EXTENSION = ".prefab";
     public const string CLONE = "(Clone)";
     public const int DIRECTIONS_COUNT = 6;
     public const int INT_BITS = 32;
