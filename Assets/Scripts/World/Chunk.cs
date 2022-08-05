@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 public class Chunk : MonoBehaviour
 {
-    private const string PATH = Const.PREFAB_FOLDER + nameof(Chunk) + Const.PREFAB_EXTENSION;
     public const int SIZE = 32;
     public const int HSIZE = SIZE / 2;
     public const int SUBSIZE = SIZE - 1;
 
-    public static Chunk Empty { get; private set; }
     private Block[,,] _blocks;
     public Chunk Forth { get; private set; }
     public Chunk Back { get; private set; }
@@ -21,49 +18,39 @@ public class Chunk : MonoBehaviour
 
     public static void Initialize()
     {
-        Empty = AssetDatabase.LoadAssetAtPath<Chunk>(PATH);
-        if (Empty is null)
+        World.ChunkCreated += (chunk, x, y, z) =>
         {
-            var temp = new GameObject(nameof(Chunk));
-            temp.AddComponent<Chunk>();
-            PrefabUtility.SaveAsPrefabAssetAndConnect(temp, PATH, InteractionMode.AutomatedAction);
-            Destroy(temp);
-            Empty = AssetDatabase.LoadAssetAtPath<Chunk>(PATH);
-        }
-
-        World.ChunkCreated += (chunk, position) =>
-        {
-            if (World.TryGetChunkAtIndices(position.x, position.y, position.z + 1, out Chunk neighbor))
+            if (World.TryGetChunk(x, y, z + 1, out Chunk neighbor))
             {
                 neighbor.Back = chunk;
                 chunk.Forth = neighbor;
             }
 
-            if (World.TryGetChunkAtIndices(position.x, position.y, position.z - 1, out neighbor))
+            if (World.TryGetChunk(x, y, z - 1, out neighbor))
             {
                 neighbor.Forth = chunk;
                 chunk.Back = neighbor;
             }
 
-            if (World.TryGetChunkAtIndices(position.x + 1, position.y, position.z, out neighbor))
+            if (World.TryGetChunk(x + 1, y, z, out neighbor))
             {
                 neighbor.Left = chunk;
                 chunk.Right = neighbor;
             }
 
-            if (World.TryGetChunkAtIndices(position.x - 1, position.y, position.z, out neighbor))
+            if (World.TryGetChunk(x - 1, y, z, out neighbor))
             {
                 neighbor.Right = chunk;
                 chunk.Left = neighbor;
             }
 
-            if (World.TryGetChunkAtIndices(position.x, position.y + 1, position.z, out neighbor))
+            if (World.TryGetChunk(x, y + 1, z, out neighbor))
             {
                 neighbor.Down = chunk;
                 chunk.Up = neighbor;
             }
 
-            if (World.TryGetChunkAtIndices(position.x, position.y - 1, position.z, out neighbor))
+            if (World.TryGetChunk(x, y - 1, z, out neighbor))
             {
                 neighbor.Up = chunk;
                 chunk.Down = neighbor;
@@ -76,17 +63,18 @@ public class Chunk : MonoBehaviour
         _blocks = new Block[SIZE, SIZE, SIZE];
     }
 
-    public Block NewInvisBlockAt(int x, int y, int z)
+    public Block NewInvisBlock(int x, int y, int z)
     {
-        var block = Instantiate(Block.Empty, new(x - HSIZE, y - HSIZE, z - HSIZE), Quaternion.identity, transform)
+        var block = Instantiate(World.Get.Block, transform)
+            .SetLocalPosition(new(x - HSIZE, y - HSIZE, z - HSIZE))
             .ReplaceClone((x, y, z).ToString());
         _blocks[x, y, z] = block;
         return block;
     }
 
-    public Block NewBlockAt(int x, int y, int z)
+    public Block NewBlock(int x, int y, int z)
     {
-        var block = NewInvisBlockAt(x, y, z);
+        var block = NewInvisBlock(x, y, z);
         block.Faces = CalcFace(x, y, z);
         UpdateBlockNeighbors(x, y, z);
 

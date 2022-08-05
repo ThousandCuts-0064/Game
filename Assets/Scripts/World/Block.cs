@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
@@ -15,7 +16,7 @@ public class Block : MonoBehaviour
     public const int TRIANGLES = SIDES * TRIANGLES_IN_SQUARE;
     public const int TRIANGLES_SIDES = TRIANGLES * TRIANGLE_SIDES;
 
-    public static Block Empty { get; private set; }
+    private static IReadOnlyList<Material> _materials;
     private static Vector3[] _verticies;
     private static int[][] _triangles;
 
@@ -30,11 +31,14 @@ public class Block : MonoBehaviour
         {
             _faces = value;
             _meshFilter.mesh.triangles = _triangles[(int)value];
+            _meshFilter.mesh.RecalculateNormals();
         }
     }
 
-    public static void Initialize()
+    public static void Initialize(IReadOnlyList<Material> materials)
     {
+        _materials = materials;
+
         _verticies = new Vector3[VERTICES]
         {
             new( HSIDE, -HSIDE,  HSIDE), new( HSIDE,  HSIDE,  HSIDE), new(-HSIDE, -HSIDE,  HSIDE), new(-HSIDE,  HSIDE,  HSIDE),
@@ -47,12 +51,12 @@ public class Block : MonoBehaviour
             new(-HSIDE, -HSIDE,  HSIDE), new(-HSIDE, -HSIDE, -HSIDE), new( HSIDE, -HSIDE,  HSIDE), new( HSIDE, -HSIDE, -HSIDE)
         };
 
-        _triangles = new int[Const.DIRECTIONS_ALL_COUNT][];
+        _triangles = new int[Const.DIRECTIONS_COUNT][];
         _triangles[0] = Array.Empty<int>();
 
-        for (int dir = 1; dir < Const.DIRECTIONS_ALL_COUNT; dir++)
+        for (int dir = 1; dir < Const.DIRECTIONS_COUNT; dir++)
         {
-            _triangles[dir] = new int[dir.CountBits() * SQUARE_TOTAL_LINES];
+            _triangles[dir] = new int[MathX.CountBits(dir) * SQUARE_TOTAL_LINES];
         }
 
         for (int side = 0; side < SIDES; side++)
@@ -60,18 +64,18 @@ public class Block : MonoBehaviour
             var trig = side * SQUARE_TOTAL_LINES;
             var vert = side * SQUARE_VERTICES;
 
-            _triangles[Const.DIRECTIONS_ALL_INT][trig + 0] = vert + 0;
-            _triangles[Const.DIRECTIONS_ALL_INT][trig + 1] = vert + 1;
-            _triangles[Const.DIRECTIONS_ALL_INT][trig + 2] = vert + 2;
+            _triangles[Const.DIRECTIONS_ALL][trig + 0] = vert + 0;
+            _triangles[Const.DIRECTIONS_ALL][trig + 1] = vert + 1;
+            _triangles[Const.DIRECTIONS_ALL][trig + 2] = vert + 2;
 
-            _triangles[Const.DIRECTIONS_ALL_INT][trig + 3] = vert + 3;
-            _triangles[Const.DIRECTIONS_ALL_INT][trig + 4] = vert + 2;
-            _triangles[Const.DIRECTIONS_ALL_INT][trig + 5] = vert + 1;
+            _triangles[Const.DIRECTIONS_ALL][trig + 3] = vert + 3;
+            _triangles[Const.DIRECTIONS_ALL][trig + 4] = vert + 2;
+            _triangles[Const.DIRECTIONS_ALL][trig + 5] = vert + 1;
         }
 
-        for (int dir = 1; dir < Const.DIRECTIONS_ALL_INT; dir++)
+        for (int dir = 1; dir < Const.DIRECTIONS_ALL; dir++)
         {
-            var bits = dir.SeparateBits(stackalloc int[Const.INT_BITS]);
+            var bits = MathX.SeparateBits(dir, stackalloc int[Const.INT_BITS]);
             int bitCount = 0;
             for (int bit = 0; bit < bits.Length; bit++)
             {
@@ -82,23 +86,22 @@ public class Block : MonoBehaviour
                 bitCount++;
                 for (int vert = 0; vert < SQUARE_TOTAL_LINES; vert++)
                 {
-                    _triangles[dir][sideTo + vert] = _triangles[Const.DIRECTIONS_ALL_INT][sideFrom + vert];
+                    _triangles[dir][sideTo + vert] = _triangles[Const.DIRECTIONS_ALL][sideFrom + vert];
                 }
             }
         }
-
-        Empty = new GameObject(nameof(Block)).AddComponent<Block>();
-        Destroy(Empty.gameObject);
     }
 
     private void Awake()
     {
         _meshFilter = GetComponent<MeshFilter>();
         _meshRenderer = GetComponent<MeshRenderer>();
+        
         _meshFilter.mesh = new()
         {
             vertices = _verticies,
             triangles = _triangles[0]
         };
+        _meshRenderer.material = _materials[0];
     }
 }
