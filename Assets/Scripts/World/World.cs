@@ -11,7 +11,7 @@ public class World : Singleton<World>
     public const int HSIZE = SIZE / 2;
     public const int SUBSIZE = SIZE - 1;
 
-    private static Chunk[,,] _chunks;
+    private static OffsetArray3<Chunk> _chunks;
     [SerializeField] private long _seed;
     [SerializeField] private float _xSeed;
     [SerializeField] private float _zSeed;
@@ -49,7 +49,7 @@ public class World : Singleton<World>
         base.Awake();
         Chunk.Initialize();
         Block.Initialize(_materials);
-        _chunks = new Chunk[SIZE, SIZE, SIZE];
+        _chunks = new OffsetArray3<Chunk>(-HSIZE, SIZE, -HSIZE, SIZE, -HSIZE, SIZE);
         Seed = 1231411241212412314;
     }
 
@@ -98,7 +98,7 @@ public class World : Singleton<World>
     public static Chunk GetChunk(int x, int y, int z) => _chunks[x, y, z];
 
     public static bool TryGetChunk(int x, int y, int z, out Chunk chunk) =>
-        _chunks.TryGetValue(SIZE, SIZE, SIZE, x, y, z, out chunk);
+        _chunks.TryGetValue(x, y, z, out chunk);
 
 #if UNITY_EDITOR
     [CustomEditor(typeof(World))]

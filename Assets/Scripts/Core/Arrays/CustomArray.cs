@@ -13,21 +13,20 @@ public abstract class CustomArray<T> : IList<T>, IReadOnlyList<T>
     int ICollection<T>.Count => Length;
     bool ICollection<T>.IsReadOnly => false;
 
-    T IReadOnlyList<T>.this[int index] => SingleIndexGet(index);
+    T IReadOnlyList<T>.this[int index] => SimpleGet(index);
     T IList<T>.this[int index] 
     { 
-        get => SingleIndexGet(index);
-        set => SingleIndexSet(index, value); 
+        get => SimpleGet(index);
+        set => SimpleSet(index, value); 
     }
 
-    public void Clear() => Array.Clear(Array, 0, Length);
+    public abstract T SimpleGet(int index);
+    public abstract void SimpleSet(int index, T value);
     public abstract int IndexOf(T item);
     public abstract bool Contains(T item);
     public abstract void CopyTo(T[] array, int arrayIndex);
     public abstract IEnumerator<T> GetEnumerator();
-
-    protected abstract T SingleIndexGet(int index);
-    protected abstract void SingleIndexSet(int index, T value);
+    public void Clear() => Array.Clear(Array, 0, Length);
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

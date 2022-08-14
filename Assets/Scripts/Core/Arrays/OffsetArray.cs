@@ -8,25 +8,48 @@ using System.Threading.Tasks;
 public class OffsetArray<T> : CustomArray<T>
 {
     private readonly T[] _array;
+    private readonly IEqualityComparer<T> _comparer;
     protected override Array Array => _array;
-    public int Offset { get; }
+    public int Start { get; }
+    public int End { get; }
     public T this[int index]
-    { 
-        get => _array[index + Offset]; 
-        set => _array[index + Offset] = value; 
-    }
-
-    public OffsetArray(int startIndex, int endIndex)
     {
-        _array = new T[endIndex - startIndex];
-        Offset = 0 + startIndex;
+        get => _array[index + Start];
+        set => _array[index + Start] = value;
     }
 
+    public OffsetArray(int start, int length)
+    {
+        _array = new T[length];
+        Start = start;
+        End = start + length - 1;
+        _comparer = EqualityComparer<T>.Default;
+    }
+
+    public OffsetArray(int start, int length, IEqualityComparer<T> comparer) 
+        : this(start, length) => _comparer = comparer;
+
+    public override T SimpleGet(int index) => this[index];
+    public override void SimpleSet(int index, T value) => this[index] = value;
     public override IEnumerator<T> GetEnumerator() => ((IEnumerable<T>)_array).GetEnumerator();
-    public override int IndexOf(T item) => ((IList<T>)_array).IndexOf(item) + Offset;
-    public override bool Contains(T item) => _array.Contains(item);
+    public override bool Contains(T item) => _array.Contains(item, _comparer);
     public override void CopyTo(T[] array, int arrayIndex) => _array.CopyTo(array, arrayIndex);
 
-    protected override T SingleIndexGet(int index) => this[index];
-    protected override void SingleIndexSet(int index, T value) => this[index] = value;
+    public override int IndexOf(T item)
+    {
+        for (int i = 0; i < Length; i++)
+            if (_comparer.Equals(_array[i], item))
+                return i;
+        return -1;
+    }
+
+    public bool TryGetValue(int index, out T obj)
+    {
+        obj = default;
+        if (index > End || index < Start)
+            return false;
+
+        obj = this[index];
+        return !typeof(T).IsValueType && !_comparer.Equals(obj, default);
+    }
 }

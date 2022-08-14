@@ -9,8 +9,9 @@ public static class ArrayExt
 {
     public static bool TryGetValue<T>(this IReadOnlyList<T> list, int index, out T obj) where T : class
     {
-        obj = null;
-        if (index >= list.Count || index < 0) return false;
+        obj = default;
+        if (index >= list.Count || index < 0)
+            return false;
 
         obj = list[index];
         return obj != null;
@@ -21,7 +22,7 @@ public static class ArrayExt
 
     public static bool TryGetValue<T>(this T[,] arr, int length0, int length1, int index0, int index1, out T obj) where T : class
     {
-        obj = null;
+        obj = default;
         if (index0 >= length0 || index1 >= length1
             || index0 < 0 || index1 < 0)
             return false;
@@ -35,7 +36,7 @@ public static class ArrayExt
 
     public static bool TryGetValue<T>(this T[,,] arr, int length0, int length1, int length2, int index0, int index1, int index2, out T obj) where T : class
     {
-        obj = null;
+        obj = default;
         if (index0 >= length0 || index1 >= length1 || index2 >= length2
             || index0 < 0 || index1 < 0 || index2 < 0)
             return false;
