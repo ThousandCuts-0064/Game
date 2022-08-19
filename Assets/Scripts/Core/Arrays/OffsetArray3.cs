@@ -21,8 +21,8 @@ public class OffsetArray3<T> : CustomArray<T>
     public int End2 { get; }
     public T this[int index0, int inedex1, int index2]
     {
-        get => _array[index0, inedex1, index2];
-        set => _array[index0, inedex1, index2] = value;
+        get => _array[index0 - Start0, inedex1 - Start1, index2 - Start2];
+        set => _array[index0 - Start0, inedex1 - Start1, index2 - Start2] = value;
     }
 
     public OffsetArray3(int start0, int length0, int start1, int length1, int start2, int length2)

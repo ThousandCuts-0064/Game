@@ -55,9 +55,10 @@ public class World : Singleton<World>
 
     private void Start()
     {
-        for (int x = -100; x <= 100; x++)
+        int side = 40;
+        for (int x = -side; x < side; x++)
         {
-            for (int z = -100; z <= 100; z++)
+            for (int z = -side; z < side; z++)
             {
                 int y = (int)MathF.Round(Mathf.PerlinNoise((float)x / SIZE, (float)z / SIZE), MidpointRounding.AwayFromZero);
                 NewBlock(x, y, z);
@@ -65,15 +66,39 @@ public class World : Singleton<World>
         }
     }
 
+    public static Chunk GetChunk(int x, int y, int z) => _chunks[x, y, z];
+
+    public static bool TryGetChunk(int x, int y, int z, out Chunk chunk) =>
+        _chunks.TryGetValue(x, y, z, out chunk);
+
     private Chunk NewChunk(int x, int y, int z)
     {
         var chunk = Instantiate(Chunk, new Vector3(x, y, z) * Chunk.SIZE, Quaternion.identity, transform)
             .ReplaceClone((x, y, z).ToString());
-        print((x, y, z));
         _chunks[x, y, z] = chunk;
         ChunkCreated(chunk, x, y, z);
 
         return chunk;
+    }
+
+    private void NewBlock(int x, int y, int z)
+    {
+        int chunkX = ToChunk(x, out int blockX);
+        int chunkY = ToChunk(y, out int blockY);
+        int chunkZ = ToChunk(z, out int blockZ);
+        if (!TryGetChunk(chunkX, chunkY, chunkZ, out Chunk chunk))
+            chunk = NewChunk(chunkX, chunkY, chunkZ);
+        chunk.NewBlock(blockX, blockY, blockZ);
+
+        static int ToChunk(int index, out int block)
+        {
+            index -= Chunk.START;
+            index = Math.DivRem(index, Chunk.SIZE, out block);
+            print(block);
+            block += Chunk.START;
+            //print(block);
+            return index;
+        }
     }
 
     private void FillChunk(Chunk chunk)
@@ -82,23 +107,6 @@ public class World : Singleton<World>
             for (int col = 0; col < Chunk.SIZE; col++)
                 chunk.NewBlock(row, 0, col);
     }
-
-    private void NewBlock(int x, int y, int z)
-    {
-        int indexX = Scale(x, out int remX);
-        int indexY = Scale(y, out int remY);
-        int indexZ = Scale(z, out int remZ);
-        if (!TryGetChunk(indexX, indexY, indexZ, out Chunk chunk))
-            chunk = NewChunk(indexX, indexY, indexZ);
-        chunk.NewBlock(remX, remY, remZ);
-
-        static int Scale(int index, out int rem) => Math.DivRem(index + Chunk.HSIZE, Chunk.SIZE, out rem);
-    }
-
-    public static Chunk GetChunk(int x, int y, int z) => _chunks[x, y, z];
-
-    public static bool TryGetChunk(int x, int y, int z, out Chunk chunk) =>
-        _chunks.TryGetValue(x, y, z, out chunk);
 
 #if UNITY_EDITOR
     [CustomEditor(typeof(World))]

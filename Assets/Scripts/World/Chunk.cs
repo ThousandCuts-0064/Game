@@ -7,6 +7,8 @@ public class Chunk : MonoBehaviour
     public const int SIZE = 32;
     public const int HSIZE = SIZE / 2;
     public const int SUBSIZE = SIZE - 1;
+    public const int START = -HSIZE;
+    public const int END = START + SIZE - 1;
 
     private Block[,,] _blocks;
     public Chunk Forth { get; private set; }
@@ -66,15 +68,19 @@ public class Chunk : MonoBehaviour
     public Block NewInvisBlock(int x, int y, int z)
     {
         var block = Instantiate(World.Get.Block, transform)
-            .SetLocalPosition(new(x - HSIZE, y - HSIZE, z - HSIZE))
+            .SetLocalPosition(new(x, y, z))
             .ReplaceClone((x, y, z).ToString());
-        _blocks[x, y, z] = block;
+        try { _blocks[x - START, y - START, z - START] = block; }
+        catch { print((x - START, y - START, z - START)); }
         return block;
     }
 
     public Block NewBlock(int x, int y, int z)
     {
         var block = NewInvisBlock(x, y, z);
+        x -= START;
+        y -= START;
+        z -= START;
         block.Faces = CalcFace(x, y, z);
         UpdateBlockNeighbors(x, y, z);
 
