@@ -10,6 +10,8 @@ public class World : Singleton<World>
     public const int SIZE = 8;
     public const int HSIZE = SIZE / 2;
     public const int SUBSIZE = SIZE - 1;
+    public const int START = -HSIZE;
+    public const int END = START + SIZE - 1;
 
     private static OffsetArray3<Chunk> _chunks;
     [SerializeField] private long _seed;
@@ -49,18 +51,19 @@ public class World : Singleton<World>
         base.Awake();
         Chunk.Initialize();
         Block.Initialize(_materials);
-        _chunks = new OffsetArray3<Chunk>(-HSIZE, SIZE, -HSIZE, SIZE, -HSIZE, SIZE);
+        _chunks = new OffsetArray3<Chunk>(START, SIZE, START, SIZE, START, SIZE);
         Seed = 1231411241212412314;
     }
 
     private void Start()
     {
         int side = 40;
+        float scale = 0.1f / side;
         for (int x = -side; x < side; x++)
         {
             for (int z = -side; z < side; z++)
             {
-                int y = (int)MathF.Round(Mathf.PerlinNoise((float)x / SIZE, (float)z / SIZE), MidpointRounding.AwayFromZero);
+                int y = (int)MathF.Round(Mathf.PerlinNoise(x * scale, z * scale) * START * Chunk.SIZE, MidpointRounding.AwayFromZero);
                 NewBlock(x, y, z);
             }
         }
@@ -95,8 +98,9 @@ public class World : Singleton<World>
             index -= Chunk.START;
             index = Math.DivRem(index, Chunk.SIZE, out block);
             //print(block);
-            block += index > 0 ? Chunk.START : -Chunk.START;
-            print((index, block));
+            block = Math.Abs(block);
+            block += Chunk.START;
+            //print((index, block));
             return index;
         }
     }
