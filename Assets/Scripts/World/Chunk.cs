@@ -71,7 +71,7 @@ public class Chunk : MonoBehaviour
             .SetLocalPosition(new(x, y, z))
             .ReplaceClone((x, y, z).ToString());
         try { _blocks[x - START, y - START, z - START] = block; }
-        catch { print((x - START, y - START, z - START)); }
+        catch { print((x, y, z)); }
         return block;
     }
 

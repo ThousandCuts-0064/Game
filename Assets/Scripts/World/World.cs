@@ -98,7 +98,7 @@ public class World : Singleton<World>
             index -= Chunk.START;
             index = Math.DivRem(index, Chunk.SIZE, out block);
             //print(block);
-            block = Math.Abs(block);
+            if (index < 0) block += Chunk.SIZE;
             block += Chunk.START;
             //print((index, block));
             return index;
