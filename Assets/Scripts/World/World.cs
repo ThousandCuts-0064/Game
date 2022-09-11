@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -7,7 +8,7 @@ using UnityEngine;
 
 public class World : Singleton<World>
 {
-    public const int SIZE = 8;
+    public const int SIZE = 512;
     public const int HSIZE = SIZE / 2;
     public const int SUBSIZE = SIZE - 1;
     public const int START = -HSIZE;
@@ -57,14 +58,20 @@ public class World : Singleton<World>
 
     private void Start()
     {
-        int side = 40;
-        float scale = 0.1f / side;
-        for (int x = -side; x < side; x++)
+        StartCoroutine(ChunkCreator());
+    }
+
+    private IEnumerator ChunkCreator()
+    {
+        int size = 5;
+        float scale = 0.1f / size;
+        for (int x = -size; x < size; x++)
         {
-            for (int z = -side; z < side; z++)
+            for (int z = -size; z < size; z++)
             {
-                int y = (int)MathF.Round(Mathf.PerlinNoise(x * scale, z * scale) * START * Chunk.SIZE, MidpointRounding.AwayFromZero);
-                NewBlock(x, y, z);
+                int y = (int)MathF.Round(Mathf.PerlinNoise(x * scale, z * scale) * Chunk.SIZE * 4, MidpointRounding.AwayFromZero);
+                if (CreateBlock(x, y, z))
+                    yield return new WaitForFixedUpdate();
             }
         }
     }
@@ -84,25 +91,47 @@ public class World : Singleton<World>
         return chunk;
     }
 
-    private void NewBlock(int x, int y, int z)
+    private bool CreateBlock(int x, int y, int z)
     {
+        bool isNewChunk;
         int chunkX = ToChunk(x, out int blockX);
         int chunkY = ToChunk(y, out int blockY);
         int chunkZ = ToChunk(z, out int blockZ);
-        if (!TryGetChunk(chunkX, chunkY, chunkZ, out Chunk chunk))
-            chunk = NewChunk(chunkX, chunkY, chunkZ);
+        isNewChunk = !TryGetChunk(chunkX, chunkY, chunkZ, out Chunk chunk);
+        if (isNewChunk) chunk = NewChunk(chunkX, chunkY, chunkZ);
         chunk.NewBlock(blockX, blockY, blockZ);
+        return isNewChunk;
 
-        static int ToChunk(int index, out int block)
+    }
+
+    private void CreateChunk(int x, int y, int z)
+    {
+        int size = Chunk.SIZE * 10;
+        float scale = 0.1f / size;
+        var chunk = NewChunk(x, y, z);
+        for (int i = Chunk.START; i < Chunk.END; i++)
         {
-            index -= Chunk.START;
-            index = Math.DivRem(index, Chunk.SIZE, out block);
-            block += Chunk.START;
-            print((index, block));
-            if (index < 0) block += Chunk.SIZE;
-            print((index, block));
-            return index;
+            for (int j = Chunk.START; j < Chunk.END; j++)
+            {
+                int height = (int)MathF.Round(Mathf.PerlinNoise(x * scale, z * scale) * Chunk.SIZE * 4, MidpointRounding.AwayFromZero);
+                chunk.NewBlock(x, height, z);
+            }
         }
+    }
+
+    private int ToChunk(int index, out int block)
+    {
+        index -= Chunk.START;
+        index = Math.DivRem(index, Chunk.SIZE, out block);
+        //print((index, block));
+        if (block < 0)
+        {
+            index--;
+            block += Chunk.SIZE;
+        }
+        block += Chunk.START;
+        //print((index, block));
+        return index;
     }
 
     private void FillChunk(Chunk chunk)

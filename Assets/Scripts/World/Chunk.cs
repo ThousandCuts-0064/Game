@@ -17,6 +17,7 @@ public class Chunk : MonoBehaviour
     public Chunk Left { get; private set; }
     public Chunk Up { get; private set; }
     public Chunk Down { get; private set; }
+    public bool IsLoaded { get; private set; } = true;
 
     public static void Initialize()
     {
@@ -65,6 +66,16 @@ public class Chunk : MonoBehaviour
         _blocks = new Block[SIZE, SIZE, SIZE];
     }
 
+    public void Load()
+    {
+
+    }
+
+    public void Unload()
+    {
+
+    }
+
     public Block NewInvisBlock(int x, int y, int z)
     {
         var block = Instantiate(World.Get.Block, transform)
@@ -83,6 +94,7 @@ public class Chunk : MonoBehaviour
         z -= START;
         block.Faces = CalcFace(x, y, z);
         UpdateBlockNeighbors(x, y, z);
+        block.gameObject.SetActive(IsLoaded);
 
         return block;
     }
