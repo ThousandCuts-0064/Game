@@ -64,14 +64,15 @@ public class World : Singleton<World>
     private IEnumerator ChunkCreator()
     {
         int size = 5;
-        float scale = 0.1f / size;
         for (int x = -size; x < size; x++)
         {
             for (int z = -size; z < size; z++)
             {
-                int y = (int)MathF.Round(Mathf.PerlinNoise(x * scale, z * scale) * Chunk.SIZE * 4, MidpointRounding.AwayFromZero);
-                if (CreateBlock(x, y, z))
+                CreateChunkPillar(x, z);
+                for (int i = 0; i < 10; i++)
+                {
                     yield return new WaitForFixedUpdate();
+                }
             }
         }
     }
@@ -104,17 +105,22 @@ public class World : Singleton<World>
 
     }
 
-    private void CreateChunk(int x, int y, int z)
+    private void CreateChunkPillar(int x, int z)
     {
-        int size = Chunk.SIZE * 10;
+        int size = 5;
         float scale = 0.1f / size;
-        var chunk = NewChunk(x, y, z);
-        for (int i = Chunk.START; i < Chunk.END; i++)
+        int pillar = 4;
+
+        for (int y = 0; y < pillar; y++)
+            NewChunk(x, y, z);
+
+        for (int xb = Chunk.START; xb <= Chunk.END; xb++)
         {
-            for (int j = Chunk.START; j < Chunk.END; j++)
+            for (int zb = Chunk.START; zb <= Chunk.END; zb++)
             {
-                int height = (int)MathF.Round(Mathf.PerlinNoise(x * scale, z * scale) * Chunk.SIZE * 4, MidpointRounding.AwayFromZero);
-                chunk.NewBlock(x, height, z);
+                int height = (int)MathF.Round(Mathf.PerlinNoise(xb * scale, zb * scale) * Chunk.SIZE * pillar, MidpointRounding.AwayFromZero);
+                print((xb * scale, zb * scale, height));
+                _chunks[x, ToChunk(height, out int block), z].NewBlock(xb, block, zb);
             }
         }
     }
