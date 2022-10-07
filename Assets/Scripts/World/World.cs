@@ -71,7 +71,7 @@ public class World : Singleton<World>
                 CreateChunkPillar(x, z);
                 for (int i = 0; i < 10; i++)
                 {
-                    yield return new WaitForFixedUpdate();
+                    yield return new WaitForEndOfFrame();
                 }
             }
         }
@@ -119,7 +119,7 @@ public class World : Singleton<World>
             for (int zb = Chunk.START; zb <= Chunk.END; zb++)
             {
                 int height = (int)MathF.Round(Mathf.PerlinNoise(xb * scale, zb * scale) * Chunk.SIZE * pillar, MidpointRounding.AwayFromZero);
-                print((xb * scale, zb * scale, height));
+                //print((xb * scale, zb * scale, height));
                 _chunks[x, ToChunk(height, out int block), z].NewBlock(xb, block, zb);
             }
         }
