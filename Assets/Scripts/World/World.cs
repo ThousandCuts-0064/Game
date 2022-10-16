@@ -10,7 +10,6 @@ public class World : Singleton<World>
 {
     public const int SIZE = 512;
     public const int HSIZE = SIZE / 2;
-    public const int SUBSIZE = SIZE - 1;
     public const int START = -HSIZE;
     public const int END = START + SIZE - 1;
 
@@ -107,18 +106,16 @@ public class World : Singleton<World>
 
     private void CreateChunkPillar(int x, int z)
     {
-        int size = 5;
-        float scale = 0.1f / size;
-        int pillar = 4;
+        int heightTotal = 4;
 
-        for (int y = 0; y < pillar; y++)
+        for (int y = 0; y < heightTotal; y++)
             NewChunk(x, y, z);
 
         for (int xb = Chunk.START; xb <= Chunk.END; xb++)
         {
             for (int zb = Chunk.START; zb <= Chunk.END; zb++)
             {
-                int height = (int)MathF.Round(Mathf.PerlinNoise(xb * scale, zb * scale) * Chunk.SIZE * pillar, MidpointRounding.AwayFromZero);
+                int height = (int)MathF.Round(Mathf.PerlinNoise(x + xb / (float)SIZE, z + zb / (float)SIZE) * Chunk.SIZE * heightTotal, MidpointRounding.AwayFromZero);
                 //print((xb * scale, zb * scale, height));
                 _chunks[x, ToChunk(height, out int block), z].NewBlock(xb, block, zb);
             }
