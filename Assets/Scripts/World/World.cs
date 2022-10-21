@@ -107,6 +107,7 @@ public class World : Singleton<World>
     private void CreateChunkPillar(int x, int z)
     {
         int heightTotal = 4;
+        float scale = 0.1f;
 
         for (int y = 0; y < heightTotal; y++)
             NewChunk(x, y, z);
@@ -115,7 +116,11 @@ public class World : Singleton<World>
         {
             for (int zb = Chunk.START; zb <= Chunk.END; zb++)
             {
-                int height = (int)MathF.Round(Mathf.PerlinNoise(x + xb / (float)SIZE, z + zb / (float)SIZE) * Chunk.SIZE * heightTotal, MidpointRounding.AwayFromZero);
+                int height = (int)MathF.Round(
+                    Mathf.PerlinNoise(
+                    x + (xb - Chunk.START) / (float)Chunk.SIZE, 
+                    z + (zb - Chunk.START) / (float)Chunk.SIZE)
+                        * Chunk.SIZE * heightTotal, MidpointRounding.AwayFromZero);
                 //print((xb * scale, zb * scale, height));
                 _chunks[x, ToChunk(height, out int block), z].NewBlock(xb, block, zb);
             }
