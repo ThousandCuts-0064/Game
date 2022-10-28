@@ -126,7 +126,7 @@ public class Chunk : MonoBehaviour
 
         next = y + 1;
         if (next < SIZE ? !_blocks[x, next, z]
-            : !Up || Up._blocks[x, 0, z])
+            : !Up || !Up._blocks[x, 0, z])
             faces |= Direction.Up;
 
         next = y - 1;
