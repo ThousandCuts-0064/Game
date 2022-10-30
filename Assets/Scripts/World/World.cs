@@ -91,51 +91,73 @@ public class World : Singleton<World>
     private bool CreateBlock(int x, int y, int z)
     {
         bool isNewChunk;
-        int chunkX = ToChunk(x, out int blockX);
-        int chunkY = ToChunk(y, out int blockY);
-        int chunkZ = ToChunk(z, out int blockZ);
+        int chunkX = ToChunkFromWorld(x, out int blockX);
+        int chunkY = ToChunkFromWorld(y, out int blockY);
+        int chunkZ = ToChunkFromWorld(z, out int blockZ);
         isNewChunk = !TryGetChunk(chunkX, chunkY, chunkZ, out Chunk chunk);
         if (isNewChunk) chunk = NewChunk(chunkX, chunkY, chunkZ);
-        chunk.NewBlock(blockX, blockY, blockZ);
+        chunk.NewBlockInWorld(blockX, blockY, blockZ);
         return isNewChunk;
 
     }
 
     private void CreateChunkPillar(int x, int z)
     {
-        int heightTotal = 4;
-        float scale = 1f;
+        Block[,] blocks2D = new Block[Chunk.SIZE, Chunk.SIZE];
+        float scale = 0.5f;
+        int heightTotalChunks = 4;
+        int heightTotalBlocks = Chunk.SIZE * heightTotalChunks - 1;
 
-        for (int y = 0; y < heightTotal; y++)
+        for (int y = 0; y < heightTotalChunks; y++)
             NewChunk(x, y, z);
 
-        for (int xb = Chunk.START; xb <= Chunk.END; xb++)
+        for (int xb = 0; xb < Chunk.SIZE; xb++)
         {
-            for (int zb = Chunk.START; zb <= Chunk.END; zb++)
+            for (int zb = 0; zb < Chunk.SIZE; zb++)
             {
                 int height = (int)MathF.Round(
                     Mathf.PerlinNoise(
-                    (x * Chunk.SIZE + (xb - Chunk.START) / (float)SIZE) * scale,
-                    (z * Chunk.SIZE + (zb - Chunk.START) / (float)SIZE) * scale)
-                        * Chunk.SIZE * heightTotal, MidpointRounding.AwayFromZero);
-                //print((xb * scale, zb * scale, height));
-                _chunks[x, ToChunk(height, out int block), z].NewBlock(xb, block, zb);
+                    (x - HSIZE + xb / (float)Chunk.SIZE) * scale,
+                    (z - HSIZE + zb / (float)Chunk.SIZE) * scale)
+                    * heightTotalBlocks, MidpointRounding.AwayFromZero);
+                blocks2D[xb, zb] = _chunks[x, ToChunkFromArray(height, out int block), z].NewBlockInArray(xb, block, zb);
+            }
+        }
+
+        for (int xb = 1; xb < Chunk.SUBSIZE; xb++)
+        {
+            for (int zb = 1; zb < Chunk.SUBSIZE; zb++)
+            {
+                int yDiff = (int)Math.Round(blocks2D[xb, zb].transform.position.y - blocks2D[xb - 1, zb].transform.position.y, MidpointRounding.AwayFromZero);
+                for (int y = 0; y < yDiff; y++)
+                {
+
+                }
             }
         }
     }
 
-    private int ToChunk(int index, out int block)
+    private int ToChunkFromWorld(int index, out int block)
     {
         index -= Chunk.START;
         index = Math.DivRem(index, Chunk.SIZE, out block);
-        //print((index, block));
         if (block < 0)
         {
             index--;
             block += Chunk.SIZE;
         }
         block += Chunk.START;
-        //print((index, block));
+        return index;
+    }
+
+    private int ToChunkFromArray(int index, out int block)
+    {
+        index = Math.DivRem(index, Chunk.SIZE, out block);
+        if (block < 0)
+        {
+            index--;
+            block += Chunk.SIZE;
+        }
         return index;
     }
 
@@ -143,7 +165,7 @@ public class World : Singleton<World>
     {
         for (int row = 0; row < Chunk.SIZE; row++)
             for (int col = 0; col < Chunk.SIZE; col++)
-                chunk.NewBlock(row, 0, col);
+                chunk.NewBlockInWorld(row, 0, col);
     }
 
 #if UNITY_EDITOR

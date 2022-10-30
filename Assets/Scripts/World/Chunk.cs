@@ -76,22 +76,40 @@ public class Chunk : MonoBehaviour
 
     }
 
-    public Block NewInvisBlock(int x, int y, int z)
+    public Block NewInvisBlockInWorld(int x, int y, int z)
     {
         var block = Instantiate(World.Get.Block, transform)
             .SetLocalPosition(new(x, y, z))
             .ReplaceClone((x, y, z).ToString());
-        try { _blocks[x - START, y - START, z - START] = block; }
-        catch { print((x - START, y - START, z - START)); }
+        _blocks[x - START, y - START, z - START] = block;
         return block;
     }
 
-    public Block NewBlock(int x, int y, int z)
+    public Block NewInvisBlockInArray(int x, int y, int z)
     {
-        var block = NewInvisBlock(x, y, z);
+        var block = Instantiate(World.Get.Block, transform)
+            .SetLocalPosition(new(x + START, y + START, z + START))
+            .ReplaceClone((x + START, y + START, z + START).ToString());
+        _blocks[x, y, z] = block;
+        return block;
+    }
+
+    public Block NewBlockInWorld(int x, int y, int z)
+    {
         x -= START;
         y -= START;
         z -= START;
+        var block = NewInvisBlockInArray(x, y, z);
+        block.Faces = CalcFace(x, y, z);
+        UpdateBlockNeighbors(x, y, z);
+        block.gameObject.SetActive(IsLoaded);
+
+        return block;
+    }
+
+    public Block NewBlockInArray(int x, int y, int z)
+    {
+        var block = NewInvisBlockInArray(x, y, z);
         block.Faces = CalcFace(x, y, z);
         UpdateBlockNeighbors(x, y, z);
         block.gameObject.SetActive(IsLoaded);
@@ -136,7 +154,6 @@ public class Chunk : MonoBehaviour
 
         return faces;
     }
-
     private void UpdateBlockNeighbors(int x, int y, int z)
     {
         Block neighbor;
