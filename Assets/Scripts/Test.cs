@@ -4,8 +4,10 @@ using UnityEngine;
 
 public class Test : MonoBehaviour
 {
-    private void Start()
+    private void FixedUpdate()
     {
-        GetComponent<Rigidbody>().AddForce(Vector3.up * 5, ForceMode.VelocityChange);
+        if (!Input.GetKey(KeyCode.F)) return;
+
+        GetComponent<Rigidbody>().MovePosition(transform.position + new Vector3(0, 0, 0.1f));
     }
 }

@@ -9,18 +9,19 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     private Rigidbody _rigidbody;
-    private Body _body;
     private Camera _camera;
     private PlayerDigitalDevice _digitalInput;
     private PlayerAnalogDevice _analogInput;
     private Controller _controller;
+    public BodyParts BodyParts { get; private set; }
+    [field: SerializeField]public float LowestPoint { get; private set; }
 
     private void Awake()
     {
         Cursor.lockState = CursorLockMode.Locked;
         _rigidbody = GetComponent<Rigidbody>();
         _camera = GetComponentInChildren<Camera>();
-        _body = new(this);
+        BodyParts = new(this);
         _analogInput = new();
         _digitalInput = new();
         _controller = new(this)
@@ -55,7 +56,7 @@ public class Player : MonoBehaviour
         private Vector3 _rotation;
         private Transform Transform => _player.transform;
         private Rigidbody Rigidbody => _player._rigidbody;
-        private Body Body => _player._body;
+        private BodyParts BodyParts => _player.BodyParts;
 
         public Controller(Player player) => _player = player;
 
@@ -63,22 +64,22 @@ public class Player : MonoBehaviour
         {
             //Mouse
             Vector3 addRot = new(-Analog.Z.Process(), Analog.X.Process(), Analog.Y.Process());
-            Rigidbody.MoveRotation(Quaternion.Euler(0, Rigidbody.rotation.eulerAngles.y + addRot.y, 0));
+            BodyParts.Torso.Rigidbody.MoveRotation(Quaternion.Euler(0, BodyParts.Torso.Rigidbody.rotation.eulerAngles.y + addRot.y, 0));
             _rotation.Set(_rotation.x + addRot.x, 0, _rotation.z + addRot.z);
             _rotation.x = Math.Clamp(_rotation.x, -90, 90);
             _rotation.z = Math.Clamp(_rotation.z, -90, 90);
-            Body.Neck.transform.localRotation = Quaternion.Euler(_rotation);
+            BodyParts.Neck.transform.localRotation = Quaternion.Euler(_rotation);
 
             //Keyboard
             Vector3 moveDir = new();
             moveDir += Transform.forward * CalcDir(Digital.Forth, Digital.Back);
             moveDir += Transform.right * CalcDir(Digital.Right, Digital.Left);
             moveDir.Normalize();
-            moveDir *= (Body.Feet[0].Stats.Speed + Body.Feet[1].Stats.Speed) / 2;
+            moveDir *= (BodyParts.Feet[0].Stats.Speed + BodyParts.Feet[1].Stats.Speed) / 2;
             Rigidbody.MovePosition(Rigidbody.position + moveDir * Time.fixedDeltaTime);
 
-            for (int i = 0; i < Body.Feet.Count; i++)
-                TryLegJump(Rigidbody, Digital.Up, Body.Feet[i].Stats);
+            for (int i = 0; i < BodyParts.Feet.Count; i++)
+                TryLegJump(Rigidbody, Digital.Up, BodyParts.Feet[i].Stats);
 
             //Local funcs
             static float CalcDir(IWrappedDigitalInput positive, IWrappedDigitalInput negative) =>
@@ -93,7 +94,7 @@ public class Player : MonoBehaviour
 
             static void TryLegJump(Rigidbody rigidbody, IWrappedDigitalInput input, FootStats foot)
             {
-                if (input.IsPressed && foot.TryJump())
+                if (input.IsPressed && foot.CanJump)
                 {
                     rigidbody.AddForce(Vector3.up * foot.JumpHeight, ForceMode.Impulse);
                 }
@@ -119,7 +120,7 @@ public class Player : MonoBehaviour
 
             Player player = (Player)target;
 
-            DisplayObject(player._body);
+            DisplayObject(player.BodyParts);
 
             Repaint();
 

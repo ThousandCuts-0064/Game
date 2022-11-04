@@ -41,6 +41,7 @@ public class World : Singleton<World>
         }
     }
     [SerializeField] private Material[] _materials;
+    [field: SerializeField] public Player Player { get; private set; }
     [field: SerializeField] public Chunk Chunk { get; private set; }
     [field: SerializeField] public Block Block { get; private set; }
 
@@ -57,10 +58,20 @@ public class World : Singleton<World>
 
     private void Start()
     {
-        StartCoroutine(ChunkCreator());
+        StartCoroutine(ChunkCreator(() =>
+        {
+            int yMax = 0;
+            for (int yc = START; yc <= END; yc++)
+                if (_chunks[0, yc, 0])
+                    for (int yb = 0; yb < Chunk.SIZE; yb++)
+                        if (_chunks[0, yc, 0][0, yb, 0])
+                            yMax = yb;
+
+            Instantiate(Player, new Vector3(0, yMax - Chunk.START + Block.HSIDE + Player.LowestPoint, 0), Quaternion.identity);
+        }));
     }
 
-    private IEnumerator ChunkCreator()
+    private IEnumerator ChunkCreator(Action onEnd)
     {
         int size = 5;
         for (int x = -size; x < size; x++)
@@ -71,6 +82,7 @@ public class World : Singleton<World>
                 yield return new WaitUntil(() => 1 / Time.deltaTime > 1);
             }
         }
+        onEnd?.Invoke();
     }
 
     public static Chunk GetChunk(int x, int y, int z) => _chunks[x, y, z];
@@ -101,40 +113,111 @@ public class World : Singleton<World>
 
     }
 
-    private void CreateChunkPillar(int x, int z)
+    private void CreateChunkPillar(int xc, int zc)
     {
-        Block[,] blocks2D = new Block[Chunk.SIZE, Chunk.SIZE];
+        int[,] heightMap = new int[Chunk.SIZE, Chunk.SIZE];
         float scale = 0.5f;
         int heightTotalChunks = 4;
         int heightTotalBlocks = Chunk.SIZE * heightTotalChunks - 1;
 
-        for (int y = 0; y < heightTotalChunks; y++)
-            NewChunk(x, y, z);
+        for (int yc = 0; yc < heightTotalChunks; yc++)
+            NewChunk(xc, yc, zc);
 
+        //Only highest points
         for (int xb = 0; xb < Chunk.SIZE; xb++)
-        {
             for (int zb = 0; zb < Chunk.SIZE; zb++)
             {
-                int height = (int)MathF.Round(
-                    Mathf.PerlinNoise(
-                    (x - HSIZE + xb / (float)Chunk.SIZE) * scale,
-                    (z - HSIZE + zb / (float)Chunk.SIZE) * scale)
-                    * heightTotalBlocks, MidpointRounding.AwayFromZero);
-                blocks2D[xb, zb] = _chunks[x, ToChunkFromArray(height, out int block), z].NewBlockInArray(xb, block, zb);
+                int yb = GenY(xc, zc, xb, zb);
+                NewBlockInPillar(xb, yb, zb);
+                heightMap[xb, zb] = yb;
             }
-        }
 
-        for (int xb = 1; xb < Chunk.SUBSIZE; xb++)
+        //Fill gaps in corners
+        FillGap(0, 0,
+            GenY(xc - 1, zc, Chunk.SUBSIZE, 0),
+            heightMap[1, 0],
+            GenY(xc, zc - 1, 0, Chunk.SUBSIZE),
+            heightMap[0, 1]);
+
+        FillGap(0, Chunk.SUBSIZE,
+            GenY(xc - 1, zc, Chunk.SUBSIZE, Chunk.SUBSIZE),
+            heightMap[1, Chunk.SUBSIZE],
+            heightMap[0, Chunk.SUBSIZE - 1],
+            GenY(xc, zc + 1, 0, 0));
+
+        FillGap(Chunk.SUBSIZE, 0,
+            heightMap[Chunk.SUBSIZE - 1, 0],
+            GenY(xc + 1, zc, 0, 0),
+            GenY(xc, zc - 1, Chunk.SUBSIZE, Chunk.SUBSIZE),
+            heightMap[Chunk.SUBSIZE, 1]);
+
+        FillGap(Chunk.SUBSIZE, Chunk.SUBSIZE,
+            heightMap[Chunk.SUBSIZE - 1, Chunk.SUBSIZE],
+            GenY(xc + 1, zc, 0, Chunk.SUBSIZE),
+            heightMap[Chunk.SUBSIZE, Chunk.SUBSIZE - 1],
+            GenY(xc, zc + 1, Chunk.SUBSIZE, 0));
+
+        //Fill gaps in sides
+        for (int off = 1; off < Chunk.SUBSIZE; off++)
         {
-            for (int zb = 1; zb < Chunk.SUBSIZE; zb++)
-            {
-                int yDiff = (int)Math.Round(blocks2D[xb, zb].transform.position.y - blocks2D[xb - 1, zb].transform.position.y, MidpointRounding.AwayFromZero);
-                for (int y = 0; y < yDiff; y++)
-                {
+            FillGap(0, off,
+                GenY(xc - 1, zc, Chunk.SUBSIZE, off),
+                heightMap[1, off],
+                heightMap[0, off - 1],
+                heightMap[0, off + 1]);
 
-                }
+            FillGap(Chunk.SUBSIZE, off,
+                heightMap[Chunk.SUBSIZE - 1, off],
+                GenY(xc + 1, zc, 0, off),
+                heightMap[Chunk.SUBSIZE, off - 1],
+                heightMap[Chunk.SUBSIZE, off + 1]);
+
+            FillGap(off, 0,
+                heightMap[off - 1, 0],
+                heightMap[off + 1, 0],
+                GenY(xc, zc - 1, off, Chunk.SUBSIZE),
+                heightMap[off, 1]);
+
+            FillGap(off, Chunk.SUBSIZE,
+                heightMap[off - 1, Chunk.SUBSIZE],
+                heightMap[off + 1, Chunk.SUBSIZE],
+                heightMap[off, Chunk.SUBSIZE - 1],
+                GenY(xc, zc + 1, off, 0));
+        }
+
+        //Fill gaps in center
+        for (int xb = 1; xb < Chunk.SUBSIZE; xb++)
+            for (int zb = 1; zb < Chunk.SUBSIZE; zb++)
+                FillGap(xb, zb,
+                    heightMap[xb - 1, zb],
+                    heightMap[xb + 1, zb],
+                    heightMap[xb, zb - 1],
+                    heightMap[xb, zb + 1]);
+
+        int GenY(int xc, int zc, int xb, int zb) =>
+            (int)MathF.Round(Mathf.Clamp01(
+                Mathf.PerlinNoise(
+                    (xc - HSIZE + xb / (float)Chunk.SIZE) * scale,
+                    (zc - HSIZE + zb / (float)Chunk.SIZE) * scale))
+                * heightTotalBlocks, MidpointRounding.AwayFromZero);
+
+        void FillGap(int xb, int zb, int side0, int side1, int side2, int side3)
+        {
+            int yCurr = heightMap[xb, zb];
+            int yMin = Math.Min(
+                Math.Min(side0, side1),
+                Math.Min(side2, side3));
+
+            yCurr--;
+            while (yCurr > yMin)
+            {
+                NewBlockInPillar(xb, yCurr, zb);
+                yCurr--;
             }
         }
+
+        Block NewBlockInPillar(int xb, int yb, int zb) =>
+            _chunks[xc, ToChunkFromArray(yb, out yb), zc].NewBlockInArray(xb, yb, zb);
     }
 
     private int ToChunkFromWorld(int index, out int block)

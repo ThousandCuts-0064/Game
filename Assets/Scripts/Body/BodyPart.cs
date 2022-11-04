@@ -9,7 +9,6 @@ using UnityEngine;
 public abstract class BodyPart<T> : MonoBehaviour, IHaveStats<T> where T : Stats, new()
 {
     public Collider Collider { get; private set; }
-    public Collider Trigger { get; private set; }
     [field: SerializeField] public int Index { get; private set; }
     [field: SerializeField] public T Stats { get; private set; }
 
@@ -19,29 +18,7 @@ public abstract class BodyPart<T> : MonoBehaviour, IHaveStats<T> where T : Stats
 
     protected virtual void Awake()
     {
-        if (!TryGetComponent(out Collider coll)) return;
-        
-        Collider = coll;
-        switch (Collider)
-        {
-            case CapsuleCollider:
-                var capsule = gameObject.AddComponent<CapsuleCollider>();
-                float ratio = capsule.height / capsule.radius;
-                capsule.radius += 2 * Physics.defaultContactOffset;
-                capsule.height += ratio * 2 * Physics.defaultContactOffset;
-                Trigger = capsule;
-                break;
-
-            case SphereCollider:
-                var sphere = gameObject.AddComponent<SphereCollider>();
-                sphere.radius += 2 * Physics.defaultContactOffset;
-                Trigger = sphere;
-                break;
-
-            default: throw new NotImplementedException();
-        }
-        Trigger.isTrigger = true;
-        //Stats = new(); Serialized
+        Collider = GetComponent<Collider>();
     }
 
     protected virtual void OnTriggerEnter(Collider other) => TriggerEnter?.Invoke(other);

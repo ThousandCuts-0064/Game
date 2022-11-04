@@ -19,6 +19,8 @@ public class Chunk : MonoBehaviour
     public Chunk Down { get; private set; }
     public bool IsLoaded { get; private set; } = true;
 
+    public Block this[int index0, int index1, int index2] => _blocks[index0, index1, index2];
+
     public static void Initialize()
     {
         World.ChunkCreated += (chunk, x, y, z) =>

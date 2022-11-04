@@ -7,14 +7,9 @@ public class Block : MonoBehaviour
 {
     public const float SIDE = 1f;
     public const float HSIDE = SIDE / 2;
-    public const int TRIANGLE_SIDES = 3;
-    public const int TRIANGLES_IN_SQUARE = 2;
-    public const int SQUARE_VERTICES = 4;
     public const int SIDES = 6;
-    public const int SQUARE_TOTAL_LINES = TRIANGLES_IN_SQUARE * TRIANGLE_SIDES;
-    public const int VERTICES = SIDES * SQUARE_VERTICES;
-    public const int TRIANGLES = SIDES * TRIANGLES_IN_SQUARE;
-    public const int TRIANGLES_SIDES = TRIANGLES * TRIANGLE_SIDES;
+    public const int TRIANGLES = SIDES * Square.TRIANGLES;
+    public const int VERTICES_SIDES = SIDES * Square.VERTICES;
 
     private static IReadOnlyList<Material> _materials;
     private static Vector3[] _verticies;
@@ -24,6 +19,7 @@ public class Block : MonoBehaviour
     private MeshFilter _meshFilter;
     [SerializeField] private Direction _faces;
 
+    public Chunk Chunk { get; private set; }
     public Direction Faces
     {
         get => _faces;
@@ -31,15 +27,27 @@ public class Block : MonoBehaviour
         {
             _faces = value;
             _meshFilter.mesh.triangles = _triangles[(int)value];
-            _meshFilter.mesh.RecalculateNormals();
+            _meshFilter.mesh.RecalculateNormals(
+                UnityEngine.Rendering.MeshUpdateFlags.DontValidateIndices
+                | UnityEngine.Rendering.MeshUpdateFlags.DontResetBoneBounds
+                | UnityEngine.Rendering.MeshUpdateFlags.DontNotifyMeshUsers
+                | UnityEngine.Rendering.MeshUpdateFlags.DontRecalculateBounds);
         }
     }
+
+    public int X => (int)transform.position.x;
+    public int Y => (int)transform.position.y;
+    public int Z => (int)transform.position.z;
+
+    public int X0 => X - Chunk.START;
+    public int Y0 => Y - Chunk.START;
+    public int Z0 => Z - Chunk.START;
 
     public static void Initialize(IReadOnlyList<Material> materials)
     {
         _materials = materials;
 
-        _verticies = new Vector3[VERTICES]
+        _verticies = new Vector3[VERTICES_SIDES]
         {
             new( HSIDE, -HSIDE,  HSIDE), new( HSIDE,  HSIDE,  HSIDE), new(-HSIDE, -HSIDE,  HSIDE), new(-HSIDE,  HSIDE,  HSIDE),
             new(-HSIDE, -HSIDE, -HSIDE), new(-HSIDE,  HSIDE, -HSIDE), new( HSIDE, -HSIDE, -HSIDE), new( HSIDE,  HSIDE, -HSIDE),
@@ -56,13 +64,13 @@ public class Block : MonoBehaviour
 
         for (int dir = 1; dir < Const.DIRECTIONS_COUNT; dir++)
         {
-            _triangles[dir] = new int[MathX.CountBits(dir) * SQUARE_TOTAL_LINES];
+            _triangles[dir] = new int[MathX.CountBits(dir) * Square.VERTICES_TRIANGLES];
         }
 
         for (int side = 0; side < SIDES; side++)
         {
-            var trig = side * SQUARE_TOTAL_LINES;
-            var vert = side * SQUARE_VERTICES;
+            int trig = side * Square.VERTICES_TRIANGLES;
+            int vert = side * Square.VERTICES;
 
             _triangles[Const.DIRECTIONS_ALL][trig + 0] = vert + 0;
             _triangles[Const.DIRECTIONS_ALL][trig + 1] = vert + 1;
@@ -81,10 +89,10 @@ public class Block : MonoBehaviour
             {
                 if (bits[bit] == 0) continue;
 
-                int sideTo = bitCount * SQUARE_TOTAL_LINES;
-                int sideFrom = bit * SQUARE_TOTAL_LINES;
+                int sideTo = bitCount * Square.VERTICES_TRIANGLES;
+                int sideFrom = bit * Square.VERTICES_TRIANGLES;
                 bitCount++;
-                for (int vert = 0; vert < SQUARE_TOTAL_LINES; vert++)
+                for (int vert = 0; vert < Square.VERTICES_TRIANGLES; vert++)
                 {
                     _triangles[dir][sideTo + vert] = _triangles[Const.DIRECTIONS_ALL][sideFrom + vert];
                 }
@@ -94,6 +102,7 @@ public class Block : MonoBehaviour
 
     private void Awake()
     {
+        UpdateChunk();
         _meshFilter = GetComponent<MeshFilter>();
         _meshRenderer = GetComponent<MeshRenderer>();
         
@@ -104,4 +113,7 @@ public class Block : MonoBehaviour
         };
         _meshRenderer.material = _materials[0];
     }
+
+    public void UpdateChunk() =>
+        Chunk = transform.parent.GetComponent<Chunk>();
 }

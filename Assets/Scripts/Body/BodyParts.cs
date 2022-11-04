@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class Body
+public class BodyParts
 {
     [SerializeResult] public Head Head { get; }
     [SerializeResult] public Neck Neck { get; }
@@ -14,7 +14,7 @@ public class Body
     [SerializeResult] public ReadOnlyCollection<Hand> Hands { get; }
     [SerializeResult] public ReadOnlyCollection<Foot> Feet { get; }
 
-    public Body(MonoBehaviour owner)
+    public BodyParts(MonoBehaviour owner)
     {
         Torso = owner.GetComponentInChildren<Torso>();
         Head = owner.GetComponentInChildren<Head>();

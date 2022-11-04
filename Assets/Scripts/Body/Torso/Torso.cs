@@ -7,5 +7,11 @@ using UnityEngine;
 [Serializable]
 public class Torso : BodyPart<TorsoStats>
 {
+    public Rigidbody Rigidbody { get; private set; }
 
+    protected override void Awake()
+    {
+        base.Awake();
+        Rigidbody = GetComponent<Rigidbody>();
+    }
 }
